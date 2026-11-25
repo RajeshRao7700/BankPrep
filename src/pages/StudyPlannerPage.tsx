@@ -12,18 +12,20 @@ import {
   AlertCircle,
   RotateCcw
 } from 'lucide-react';
-import { PREDEFINED_SYLLABUS, SUBJECTS } from '../lib/defaultData';
+import { SUBJECTS } from '../lib/defaultData';
 import { 
   getStudyTasks, 
   addStudyTask, 
   toggleStudyTask, 
   deleteStudyTask, 
   getUserProfile, 
-  getAppSettings 
+  getAppSettings,
+  getAllSyllabusTopics 
 } from '../lib/storage';
 import { StudyTask, SubjectCode, TaskType } from '../lib/types';
 
 export const StudyPlannerPage: React.FC = () => {
+  const allTopics = getAllSyllabusTopics();
   const [tasks, setTasks] = useState<StudyTask[]>([]);
   const [profile, setProfile] = useState(getUserProfile());
   const [settings, setSettings] = useState(getAppSettings());
@@ -35,7 +37,7 @@ export const StudyPlannerPage: React.FC = () => {
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDate, setTaskDate] = useState(new Date().toISOString().split('T')[0]);
   const [subjectCode, setSubjectCode] = useState<SubjectCode>('quant');
-  const [topicId, setTopicId] = useState(PREDEFINED_SYLLABUS[0].id);
+  const [topicId, setTopicId] = useState(allTopics[0]?.id || 'quant-01');
   const [taskType, setTaskType] = useState<TaskType>('Watch Video');
   const [duration, setDuration] = useState(45);
   const [priority, setPriority] = useState<'High' | 'Medium' | 'Low'>('Medium');

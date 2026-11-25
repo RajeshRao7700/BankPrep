@@ -16,7 +16,7 @@ import {
   Flame,
   Award
 } from 'lucide-react';
-import { PREDEFINED_SYLLABUS, SUBJECTS } from '../lib/defaultData';
+import { SUBJECTS } from '../lib/defaultData';
 import { 
   getInitialUserTopics, 
   saveUserTopicState, 
@@ -27,7 +27,8 @@ import {
   addPracticeRecord,
   getRevisionRecords, 
   scheduleStandardRevisions, 
-  completeRevision 
+  completeRevision,
+  getTopicById
 } from '../lib/storage';
 import { TopicStatus, UserTopicState } from '../lib/types';
 import confetti from 'canvas-confetti';
@@ -35,7 +36,7 @@ import confetti from 'canvas-confetti';
 export const TopicDetailPage: React.FC = () => {
   const { topicId } = useParams<{ topicId: string }>();
 
-  const topic = PREDEFINED_SYLLABUS.find(t => t.id === topicId);
+  const topic = getTopicById(topicId || '');
   const subject = topic ? SUBJECTS.find(s => s.code === topic.subjectCode) : null;
 
   const [topicState, setTopicState] = useState<UserTopicState | null>(null);

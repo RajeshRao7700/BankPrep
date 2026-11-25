@@ -1,28 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Target, 
-  Plus, 
-  Trash2, 
-  Calendar, 
-  Clock, 
-  CheckCircle2, 
-  BarChart2, 
+import {
+  Target,
+  Plus,
+  Trash2,
+  Calendar,
+  Clock,
+  CheckCircle2,
+  BarChart2,
   Flame,
   Search,
   Filter
 } from 'lucide-react';
-import { PREDEFINED_SYLLABUS, SUBJECTS } from '../lib/defaultData';
-import { getPracticeRecords, addPracticeRecord, deletePracticeRecord } from '../lib/storage';
+import { SUBJECTS } from '../lib/defaultData';
+import { getPracticeRecords, addPracticeRecord, deletePracticeRecord, getAllSyllabusTopics } from '../lib/storage';
 import { PracticeRecord, SubjectCode } from '../lib/types';
 
 export const PracticeTrackerPage: React.FC = () => {
+  const allTopics = getAllSyllabusTopics();
   const [records, setRecords] = useState<PracticeRecord[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<SubjectCode | 'all'>('all');
   const [searchTopic, setSearchTopic] = useState('');
 
   // Form State
-  const [topicId, setTopicId] = useState(PREDEFINED_SYLLABUS[0].id);
+  const [topicId, setTopicId] = useState(allTopics[0]?.id || 'quant-01');
   const [practiceDate, setPracticeDate] = useState(new Date().toISOString().split('T')[0]);
   const [attempted, setAttempted] = useState(40);
   const [correct, setCorrect] = useState(32);
@@ -70,7 +71,7 @@ export const PracticeTrackerPage: React.FC = () => {
 
   // Filtered records
   const filteredRecords = records.filter(r => {
-    const t = PREDEFINED_SYLLABUS.find(x => x.id === r.topicId);
+    const t = allTopics.find(x => x.id === r.topicId);
     if (!t) return false;
     if (selectedSubject !== 'all' && t.subjectCode !== selectedSubject) return false;
     if (searchTopic && !t.name.toLowerCase().includes(searchTopic.toLowerCase())) return false;
@@ -132,9 +133,8 @@ export const PracticeTrackerPage: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <button
             onClick={() => setSelectedSubject('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-              selectedSubject === 'all' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${selectedSubject === 'all' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+              }`}
           >
             All Subjects
           </button>
@@ -142,9 +142,8 @@ export const PracticeTrackerPage: React.FC = () => {
             <button
               key={s.code}
               onClick={() => setSelectedSubject(s.code)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                selectedSubject === s.code ? `${s.bgLight} ${s.bgDark} font-bold` : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${selectedSubject === s.code ? `${s.bgLight} ${s.bgDark} font-bold` : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                }`}
             >
               {s.name}
             </button>
@@ -190,7 +189,7 @@ export const PracticeTrackerPage: React.FC = () => {
                 </tr>
               ) : (
                 filteredRecords.map(item => {
-                  const t = PREDEFINED_SYLLABUS.find(x => x.id === item.topicId);
+                  const t = allTopics.find(x => x.id === item.topicId);
                   const sub = t ? SUBJECTS.find(s => s.code === t.subjectCode) : null;
                   const acc = item.attemptedQuestions > 0 ? Math.round((item.correctAnswers / item.attemptedQuestions) * 100) : 0;
 
@@ -216,11 +215,10 @@ export const PracticeTrackerPage: React.FC = () => {
                         {item.correctAnswers}
                       </td>
                       <td className="py-3 px-4">
-                        <span className={`font-bold px-2 py-0.5 rounded-md text-[11px] ${
-                          acc >= 80 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' :
+                        <span className={`font-bold px-2 py-0.5 rounded-md text-[11px] ${acc >= 80 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' :
                           acc >= 60 ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300' :
-                          'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
-                        }`}>
+                            'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
+                          }`}>
                           {acc}%
                         </span>
                       </td>
@@ -275,7 +273,7 @@ export const PracticeTrackerPage: React.FC = () => {
                 onChange={e => setTopicId(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
               >
-                {PREDEFINED_SYLLABUS.map(t => (
+                {allTopics.map(t => (
                   <option key={t.id} value={t.id}>
                     [{t.subjectCode.toUpperCase()}] {t.name}
                   </option>

@@ -10,13 +10,16 @@ import {
   MockTestRecord, 
   DailyGoal, 
   AppSettings,
-  TopicStatus
+  TopicStatus,
+  SyllabusTopic,
+  SubjectCode
 } from './types';
 import { PREDEFINED_SYLLABUS } from './defaultData';
 
 const STORAGE_KEYS = {
   PROFILE: 'bankprep_profile',
   USER_TOPICS: 'bankprep_user_topics',
+  CUSTOM_TOPICS: 'bankprep_custom_topics',
   COURSES: 'bankprep_courses',
   VIDEO_CLASSES: 'bankprep_video_classes',
   PRACTICE: 'bankprep_practice_records',
@@ -74,13 +77,105 @@ function setLocal<T>(key: string, value: T): void {
   }
 }
 
+// Custom topics management
+export function getCustomTopics(): SyllabusTopic[] {
+  return getLocal<SyllabusTopic[]>(STORAGE_KEYS.CUSTOM_TOPICS, []);
+}
+
+export function getAllSyllabusTopics(): SyllabusTopic[] {
+  const custom = getCustomTopics();
+  return [...PREDEFINED_SYLLABUS, ...custom];
+}
+
+export function getTopicById(topicId: string): SyllabusTopic | undefined {
+  return getAllSyllabusTopics().find(t => t.id === topicId);
+}
+
+export function addCustomTopic(params: {
+  name: string;
+  subjectCode: SubjectCode;
+  totalClasses?: number;
+  defaultTargetQuestions?: number;
+  courseName?: string;
+  externalCourseUrl?: string;
+  notes?: string;
+}): SyllabusTopic {
+  const custom = getCustomTopics();
+  const all = getAllSyllabusTopics();
+
+  const id = `cust-${params.subjectCode}-${Date.now()}`;
+  const orderIndex = all.filter(t => t.subjectCode === params.subjectCode).length + 1;
+
+  const newTopic: SyllabusTopic = {
+    id,
+    subjectCode: params.subjectCode,
+    name: params.name.trim(),
+    orderIndex,
+    defaultTargetQuestions: Math.max(10, params.defaultTargetQuestions || 150),
+    isCustom: true
+  };
+
+  custom.push(newTopic);
+  setLocal(STORAGE_KEYS.CUSTOM_TOPICS, custom);
+
+  // Initialize topic user state
+  const allStates = getInitialUserTopics();
+  allStates[id] = {
+    topicId: id,
+    status: 'Not Started',
+    confidenceLevel: 1,
+    targetQuestions: newTopic.defaultTargetQuestions,
+    timeSpentMinutes: 0,
+    updatedAt: new Date().toISOString()
+  };
+  setLocal(STORAGE_KEYS.USER_TOPICS, allStates);
+
+  // Auto-generate video classes if configured
+  const totalClasses = Math.max(0, params.totalClasses || 0);
+  saveTopicCourseConfig(
+    id,
+    totalClasses,
+    params.courseName || '',
+    params.externalCourseUrl || '',
+    params.notes || ''
+  );
+
+  return newTopic;
+}
+
+export function deleteCustomTopic(topicId: string): boolean {
+  let custom = getCustomTopics();
+  const exists = custom.some(t => t.id === topicId);
+  if (!exists) return false;
+
+  custom = custom.filter(t => t.id !== topicId);
+  setLocal(STORAGE_KEYS.CUSTOM_TOPICS, custom);
+
+  // Remove associated courses
+  const allCourses = getAllCourses();
+  delete allCourses[topicId];
+  setLocal(STORAGE_KEYS.COURSES, allCourses);
+
+  // Remove video classes
+  const allVideoClasses = getAllVideoClasses();
+  delete allVideoClasses[topicId];
+  setLocal(STORAGE_KEYS.VIDEO_CLASSES, allVideoClasses);
+
+  // Remove topic state
+  const allStates = getInitialUserTopics();
+  delete allStates[topicId];
+  setLocal(STORAGE_KEYS.USER_TOPICS, allStates);
+
+  return true;
+}
+
 // Initialize topics state
 export function getInitialUserTopics(): Record<string, UserTopicState> {
   const saved = getLocal<Record<string, UserTopicState>>(STORAGE_KEYS.USER_TOPICS, {});
   let hasNew = false;
   const current: Record<string, UserTopicState> = { ...saved };
 
-  PREDEFINED_SYLLABUS.forEach(topic => {
+  getAllSyllabusTopics().forEach(topic => {
     if (!current[topic.id]) {
       hasNew = true;
       current[topic.id] = {

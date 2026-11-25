@@ -14,12 +14,13 @@ import {
   ArrowUpDown,
   FileEdit
 } from 'lucide-react';
-import { PREDEFINED_SYLLABUS, SUBJECTS } from '../lib/defaultData';
+import { SUBJECTS } from '../lib/defaultData';
 import { 
   getAllCourses, 
   getAllVideoClasses, 
   toggleVideoClass, 
-  updateVideoClassMeta 
+  updateVideoClassMeta,
+  getAllSyllabusTopics 
 } from '../lib/storage';
 import { SubjectCode, VideoClassItem } from '../lib/types';
 
@@ -36,13 +37,15 @@ export const VideoTrackerPage: React.FC = () => {
   // Edit class modal state
   const [editingClass, setEditingClass] = useState<{ topicId: string; classNumber: number; title: string; notes: string; url: string } | null>(null);
 
+  const allTopics = getAllSyllabusTopics();
+
   useEffect(() => {
     setVideoClasses(getAllVideoClasses());
     setCourses(getAllCourses());
 
     // Initially expand first 2 topics
     const initialExpanded: Record<string, boolean> = {};
-    PREDEFINED_SYLLABUS.slice(0, 3).forEach(t => initialExpanded[t.id] = true);
+    allTopics.slice(0, 3).forEach(t => initialExpanded[t.id] = true);
     setExpandedTopics(initialExpanded);
   }, []);
 
@@ -79,12 +82,12 @@ export const VideoTrackerPage: React.FC = () => {
   // Expand all or collapse all
   const handleExpandAll = (expand: boolean) => {
     const updated: Record<string, boolean> = {};
-    PREDEFINED_SYLLABUS.forEach(t => updated[t.id] = expand);
+    allTopics.forEach(t => updated[t.id] = expand);
     setExpandedTopics(updated);
   };
 
   // Filter topics
-  let filteredTopics = PREDEFINED_SYLLABUS.filter(t => {
+  let filteredTopics = allTopics.filter(t => {
     if (selectedSubject !== 'all' && t.subjectCode !== selectedSubject) return false;
     if (searchQuery && !t.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;

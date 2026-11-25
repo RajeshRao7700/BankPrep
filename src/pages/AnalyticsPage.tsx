@@ -1,41 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Repeat, 
-  Target, 
-  Video, 
+import {
+  BarChart3,
+  TrendingUp,
+  CheckCircle2,
+  AlertTriangle,
+  Repeat,
+  Target,
+  Video,
   Flame,
   Clock,
   Award
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
   CartesianGrid,
   Legend,
   PieChart,
   Pie,
   Cell
 } from 'recharts';
-import { PREDEFINED_SYLLABUS, SUBJECTS } from '../lib/defaultData';
+import { SUBJECTS } from '../lib/defaultData';
 import { 
   getInitialUserTopics, 
   getAllVideoClasses, 
   getPracticeRecords, 
   getRevisionRecords, 
-  getMockTests 
+  getMockTests,
+  getAllSyllabusTopics 
 } from '../lib/storage';
 
 const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
 
 export const AnalyticsPage: React.FC = () => {
+  const allTopics = getAllSyllabusTopics();
   const [topicsState, setTopicsState] = useState(getInitialUserTopics());
   const [videoClasses, setVideoClasses] = useState(getAllVideoClasses());
   const [practiceRecords, setPracticeRecords] = useState(getPracticeRecords());
@@ -51,9 +53,9 @@ export const AnalyticsPage: React.FC = () => {
   }, []);
 
   // Total topics stats
-  const totalTopics = PREDEFINED_SYLLABUS.length;
+  const totalTopics = allTopics.length;
   const completedTopics = Object.values(topicsState).filter(t => t.status === 'Completed').length;
-  const syllabusPercent = Math.round((completedTopics / totalTopics) * 100);
+  const syllabusPercent = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
 
   // Video stats
   let totalVideos = 0;
@@ -73,7 +75,7 @@ export const AnalyticsPage: React.FC = () => {
   const completedRevisions = revisionRecords.filter(r => r.isCompleted).length;
 
   // Identify Strong Topics (confidence >= 4 or practice accuracy >= 80% with at least 20 questions)
-  const strongTopics = PREDEFINED_SYLLABUS.filter(t => {
+  const strongTopics = allTopics.filter(t => {
     const state = topicsState[t.id];
     const recs = practiceRecords.filter(p => p.topicId === t.id);
     const attempted = recs.reduce((a, b) => a + b.attemptedQuestions, 0);
@@ -83,7 +85,7 @@ export const AnalyticsPage: React.FC = () => {
   });
 
   // Identify Weak Topics (confidence <= 2 or accuracy < 70% with at least 15 questions or marked in mistakes)
-  const weakTopics = PREDEFINED_SYLLABUS.filter(t => {
+  const weakTopics = allTopics.filter(t => {
     const state = topicsState[t.id];
     const recs = practiceRecords.filter(p => p.topicId === t.id);
     const attempted = recs.reduce((a, b) => a + b.attemptedQuestions, 0);
@@ -93,14 +95,14 @@ export const AnalyticsPage: React.FC = () => {
   });
 
   // Topics with incomplete videos
-  const incompleteVideoTopics = PREDEFINED_SYLLABUS.filter(t => {
+  const incompleteVideoTopics = allTopics.filter(t => {
     const cls = videoClasses[t.id] || [];
     return cls.length > 0 && cls.some(c => !c.isCompleted);
   });
 
   // Chart data: Subject wise comparison
   const subjectChartData = SUBJECTS.map(sub => {
-    const subTopics = PREDEFINED_SYLLABUS.filter(t => t.subjectCode === sub.code);
+    const subTopics = allTopics.filter(t => t.subjectCode === sub.code);
     const done = subTopics.filter(t => topicsState[t.id]?.status === 'Completed').length;
     return {
       name: sub.name,

@@ -9,22 +9,24 @@ import {
   Sparkles,
   BookOpen
 } from 'lucide-react';
-import { PREDEFINED_SYLLABUS, SUBJECTS } from '../lib/defaultData';
+import { SUBJECTS } from '../lib/defaultData';
 import { 
   getRevisionRecords, 
   scheduleStandardRevisions, 
-  completeRevision 
+  completeRevision,
+  getAllSyllabusTopics 
 } from '../lib/storage';
 import { RevisionRecord } from '../lib/types';
 import confetti from 'canvas-confetti';
 
 export const RevisionCenterPage: React.FC = () => {
+  const allTopics = getAllSyllabusTopics();
   const [revisions, setRevisions] = useState<RevisionRecord[]>([]);
   const [activeTab, setActiveTab] = useState<'today' | 'upcoming' | 'overdue' | 'completed'>('today');
   
   // Schedule New Revisions Modal
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-  const [selectedTopicId, setSelectedTopicId] = useState(PREDEFINED_SYLLABUS[0].id);
+  const [selectedTopicId, setSelectedTopicId] = useState(allTopics[0]?.id || 'quant-01');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Complete Revision Modal
@@ -181,7 +183,7 @@ export const RevisionCenterPage: React.FC = () => {
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
             {displayedList.map((rev) => {
-              const topic = PREDEFINED_SYLLABUS.find(t => t.id === rev.topicId);
+              const topic = allTopics.find(t => t.id === rev.topicId);
               const subject = topic ? SUBJECTS.find(s => s.code === topic.subjectCode) : null;
 
               return (
@@ -264,7 +266,7 @@ export const RevisionCenterPage: React.FC = () => {
                 onChange={e => setSelectedTopicId(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
               >
-                {PREDEFINED_SYLLABUS.map(t => (
+                {allTopics.map(t => (
                   <option key={t.id} value={t.id}>
                     [{t.subjectCode.toUpperCase()}] {t.name}
                   </option>

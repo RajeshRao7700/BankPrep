@@ -20,6 +20,7 @@ export interface SyllabusTopic {
   name: string;
   orderIndex: number;
   defaultTargetQuestions: number;
+  isCustom?: boolean;
 }
 
 export interface UserTopicState {

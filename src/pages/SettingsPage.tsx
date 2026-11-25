@@ -26,9 +26,9 @@ import {
   getRevisionRecords,
   getMockTests,
   getNotes,
-  getStudyTasks
+  getStudyTasks,
+  getAllSyllabusTopics
 } from '../lib/storage';
-import { PREDEFINED_SYLLABUS } from '../lib/defaultData';
 import { isSupabaseConfigured } from '../lib/supabase';
 
 export const SettingsPage: React.FC = () => {
@@ -102,9 +102,10 @@ export const SettingsPage: React.FC = () => {
   };
 
   const exportSyllabusCsv = () => {
+    const allTopics = getAllSyllabusTopics();
     const topics = getInitialUserTopics();
     const header = 'Subject,Topic Name,Status,Confidence,Target Questions\n';
-    const rows = PREDEFINED_SYLLABUS.map(t => {
+    const rows = allTopics.map(t => {
       const state = topics[t.id];
       return `"${t.subjectCode}","${t.name}","${state?.status || 'Not Started'}",${state?.confidenceLevel || 1},${state?.targetQuestions || 200}`;
     }).join('\n');
@@ -112,11 +113,12 @@ export const SettingsPage: React.FC = () => {
   };
 
   const exportVideosCsv = () => {
+    const allTopics = getAllSyllabusTopics();
     const classes = getAllVideoClasses();
     const header = 'Topic,Class Number,Class Title,Completed,Completed Date,Link\n';
     const lines: string[] = [];
     Object.entries(classes).forEach(([topicId, list]) => {
-      const t = PREDEFINED_SYLLABUS.find(x => x.id === topicId);
+      const t = allTopics.find(x => x.id === topicId);
       list.forEach(c => {
         lines.push(`"${t?.name || topicId}",${c.classNumber},"${c.title}",${c.isCompleted},"${c.completedAt || ''}","${c.externalVideoUrl || ''}"`);
       });
@@ -125,10 +127,11 @@ export const SettingsPage: React.FC = () => {
   };
 
   const exportPracticeCsv = () => {
+    const allTopics = getAllSyllabusTopics();
     const records = getPracticeRecords();
     const header = 'Date,Topic,Attempted,Correct,Incorrect,Accuracy,Time Mins,Level,Source,Notes\n';
     const rows = records.map(r => {
-      const t = PREDEFINED_SYLLABUS.find(x => x.id === r.topicId);
+      const t = allTopics.find(x => x.id === r.topicId);
       const acc = r.attemptedQuestions > 0 ? ((r.correctAnswers / r.attemptedQuestions) * 100).toFixed(1) : '0';
       return `"${r.practiceDate}","${t?.name || r.topicId}",${r.attemptedQuestions},${r.correctAnswers},${r.incorrectAnswers},${acc}%,${r.timeSpentMinutes},"${r.difficultyLevel}","${r.source}","${r.notes || ''}"`;
     }).join('\n');

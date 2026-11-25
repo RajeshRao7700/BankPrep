@@ -1,24 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  BookOpen, 
-  Search, 
-  CheckCircle2, 
-  Clock, 
-  Flame, 
-  PlayCircle, 
+import {
+  BookOpen,
+  Search,
+  CheckCircle2,
+  Clock,
+  Flame,
+  PlayCircle,
   ExternalLink,
   ChevronRight,
-  Filter
+  Filter,
+  Plus
 } from 'lucide-react';
-import { PREDEFINED_SYLLABUS, SUBJECTS } from '../lib/defaultData';
-import { 
-  getInitialUserTopics, 
-  saveUserTopicState, 
-  getAllCourses, 
-  getAllVideoClasses, 
+import { SUBJECTS } from '../lib/defaultData';
+import {
+  getInitialUserTopics,
+  saveUserTopicState,
+  getAllCourses,
+  getAllVideoClasses,
   getPracticeRecords,
-  getRevisionRecords 
+  getRevisionRecords,
+  getAllSyllabusTopics
 } from '../lib/storage';
 import { SubjectCode, TopicStatus, UserTopicState } from '../lib/types';
 
@@ -41,15 +43,17 @@ export const SyllabusPage: React.FC = () => {
   }, []);
 
   const handleStatusChange = (topicId: string, newStatus: TopicStatus) => {
-    const updated = saveUserTopicState(topicId, { 
+    const updated = saveUserTopicState(topicId, {
       status: newStatus,
       completedDate: newStatus === 'Completed' ? new Date().toISOString().split('T')[0] : undefined
     });
     setTopicsState(prev => ({ ...prev, [topicId]: updated }));
   };
 
+  const allTopics = getAllSyllabusTopics();
+
   // Filtered Topics
-  const filteredTopics = PREDEFINED_SYLLABUS.filter(t => {
+  const filteredTopics = allTopics.filter(t => {
     if (selectedSubject !== 'all' && t.subjectCode !== selectedSubject) return false;
     const state = topicsState[t.id];
     const status = state?.status || 'Not Started';
@@ -59,7 +63,7 @@ export const SyllabusPage: React.FC = () => {
   });
 
   // Calculate subject counts
-  const totalCount = PREDEFINED_SYLLABUS.length;
+  const totalCount = allTopics.length;
   const completedCount = Object.values(topicsState).filter(s => s.status === 'Completed').length;
   const learningCount = Object.values(topicsState).filter(s => s.status === 'Learning' || s.status === 'Practicing').length;
 
@@ -77,13 +81,22 @@ export const SyllabusPage: React.FC = () => {
           </p>
         </div>
 
-        <Link
-          to="/bulk-setup"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white font-semibold text-xs shadow-md shadow-brand-500/20 hover:opacity-95 transition-all"
-        >
-          <PlayCircle className="w-4 h-4" />
-          Bulk Course Setup
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/bulk-setup"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs shadow-md shadow-purple-500/20 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            Add Custom Topic
+          </Link>
+          <Link
+            to="/bulk-setup"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white font-semibold text-xs shadow-md shadow-brand-500/20 hover:opacity-95 transition-all"
+          >
+            <PlayCircle className="w-4 h-4" />
+            Bulk Course Setup
+          </Link>
+        </div>
       </div>
 
       {/* Summary Stat Pills */}
@@ -114,26 +127,24 @@ export const SyllabusPage: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setSelectedSubject('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              selectedSubject === 'all'
-                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
-                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedSubject === 'all'
+              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
+              : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200'
+              }`}
           >
             All Subjects ({totalCount})
           </button>
           {SUBJECTS.map(sub => {
-            const count = PREDEFINED_SYLLABUS.filter(t => t.subjectCode === sub.code).length;
+            const count = allTopics.filter(t => t.subjectCode === sub.code).length;
             const isSelected = selectedSubject === sub.code;
             return (
               <button
                 key={sub.code}
                 onClick={() => setSelectedSubject(sub.code)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                  isSelected
-                    ? `${sub.bgLight} ${sub.bgDark} font-bold shadow-sm`
-                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200'
-                }`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${isSelected
+                  ? `${sub.bgLight} ${sub.bgDark} font-bold shadow-sm`
+                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200'
+                  }`}
               >
                 <span>{sub.name}</span>
                 <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/10 dark:bg-white/10">{count}</span>
@@ -208,26 +219,32 @@ export const SyllabusPage: React.FC = () => {
               <div>
                 {/* Card Top: Subject pill & Status Dropdown */}
                 <div className="flex items-center justify-between gap-2 mb-2.5">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${subject.bgLight} ${subject.bgDark}`}>
-                    {subject.name}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${subject.bgLight} ${subject.bgDark}`}>
+                      {subject.name}
+                    </span>
+                    {topic.isCustom && (
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                        Custom
+                      </span>
+                    )}
+                  </div>
 
                   {/* Manual Status Selector */}
                   <select
                     aria-label={`Update status for ${topic.name}`}
                     value={state.status}
                     onChange={(e) => handleStatusChange(topic.id, e.target.value as TopicStatus)}
-                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border focus:outline-none cursor-pointer ${
-                      state.status === 'Completed'
-                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-                        : state.status === 'Learning'
+                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border focus:outline-none cursor-pointer ${state.status === 'Completed'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                      : state.status === 'Learning'
                         ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800'
                         : state.status === 'Practicing'
-                        ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800'
-                        : state.status === 'Revision Required'
-                        ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'
-                    }`}
+                          ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800'
+                          : state.status === 'Revision Required'
+                            ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'
+                      }`}
                   >
                     <option value="Not Started">Not Started</option>
                     <option value="Learning">Learning</option>
@@ -258,7 +275,7 @@ export const SyllabusPage: React.FC = () => {
                       </span>
                     </div>
                     <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-brand-500 rounded-full transition-all duration-300"
                         style={{ width: `${videoPercent}%` }}
                       />
@@ -277,7 +294,7 @@ export const SyllabusPage: React.FC = () => {
                       </span>
                     </div>
                     <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-amber-500 rounded-full transition-all duration-300"
                         style={{ width: `${practicePercent}%` }}
                       />
@@ -290,8 +307,8 @@ export const SyllabusPage: React.FC = () => {
                   <span>Revisions: <strong className="text-slate-700 dark:text-slate-200">{topicRevisions}</strong></span>
                   <div className="flex items-center gap-0.5">
                     {[1, 2, 3, 4, 5].map(star => (
-                      <span 
-                        key={star} 
+                      <span
+                        key={star}
                         className={`text-xs ${star <= (state.confidenceLevel || 1) ? 'text-amber-400' : 'text-slate-200 dark:text-slate-700'}`}
                       >
                         ★

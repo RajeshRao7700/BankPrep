@@ -26,7 +26,7 @@ import {
   Tooltip, 
   CartesianGrid 
 } from 'recharts';
-import { PREDEFINED_SYLLABUS, SUBJECTS } from '../lib/defaultData';
+import { SUBJECTS } from '../lib/defaultData';
 import { 
   getInitialUserTopics, 
   getAllCourses, 
@@ -36,7 +36,8 @@ import {
   getStudyTasks, 
   toggleStudyTask,
   getUserProfile,
-  getTodayGoal 
+  getTodayGoal,
+  getAllSyllabusTopics
 } from '../lib/storage';
 import { SubjectCode } from '../lib/types';
 
@@ -65,7 +66,8 @@ export const DashboardPage: React.FC = () => {
   };
 
   // Calculations
-  const totalTopics = PREDEFINED_SYLLABUS.length;
+  const allTopics = getAllSyllabusTopics();
+  const totalTopics = allTopics.length;
   const completedTopics = Object.values(topicsState).filter(t => t.status === 'Completed').length;
   const inProgressTopics = Object.values(topicsState).filter(t => t.status === 'Learning' || t.status === 'Practicing').length;
   const notStartedTopics = totalTopics - completedTopics - inProgressTopics;
@@ -93,7 +95,7 @@ export const DashboardPage: React.FC = () => {
 
   // Subject Wise Breakdown
   const subjectProgress = SUBJECTS.map(sub => {
-    const subTopics = PREDEFINED_SYLLABUS.filter(t => t.subjectCode === sub.code);
+    const subTopics = allTopics.filter(t => t.subjectCode === sub.code);
     const completedCount = subTopics.filter(t => topicsState[t.id]?.status === 'Completed').length;
     
     let subTotalVideos = 0;
@@ -108,7 +110,7 @@ export const DashboardPage: React.FC = () => {
       .filter(p => subTopics.some(t => t.id === p.topicId))
       .reduce((acc, p) => acc + p.attemptedQuestions, 0);
 
-    const overallPct = Math.round((completedCount / subTopics.length) * 100);
+    const overallPct = subTopics.length > 0 ? Math.round((completedCount / subTopics.length) * 100) : 0;
 
     return {
       ...sub,
@@ -125,7 +127,7 @@ export const DashboardPage: React.FC = () => {
   const recommendations: Array<{ title: string; desc: string; link: string; type: string }> = [];
 
   // Recommendation 1: Pending video classes in active topics
-  const learningTopic = PREDEFINED_SYLLABUS.find(t => topicsState[t.id]?.status === 'Learning');
+  const learningTopic = allTopics.find(t => topicsState[t.id]?.status === 'Learning');
   if (learningTopic) {
     const pendingClass = (videoClasses[learningTopic.id] || []).find(c => !c.isCompleted);
     if (pendingClass) {
@@ -141,7 +143,7 @@ export const DashboardPage: React.FC = () => {
   // Recommendation 2: Low accuracy practice drill
   const lowAccPractice = practiceRecords.find(p => p.attemptedQuestions > 10 && (p.correctAnswers / p.attemptedQuestions) < 0.7);
   if (lowAccPractice) {
-    const t = PREDEFINED_SYLLABUS.find(x => x.id === lowAccPractice.topicId);
+    const t = allTopics.find(x => x.id === lowAccPractice.topicId);
     if (t) {
       recommendations.push({
         title: `Practice 25 questions in ${t.name}`,
@@ -155,7 +157,7 @@ export const DashboardPage: React.FC = () => {
   // Recommendation 3: Overdue or pending revision
   const dueRevision = revisionRecords.find(r => !r.isCompleted && r.scheduledDate <= todayStr);
   if (dueRevision) {
-    const t = PREDEFINED_SYLLABUS.find(x => x.id === dueRevision.topicId);
+    const t = allTopics.find(x => x.id === dueRevision.topicId);
     if (t) {
       recommendations.push({
         title: `Spaced Revision: ${t.name} (Rev #${dueRevision.revisionNumber})`,
