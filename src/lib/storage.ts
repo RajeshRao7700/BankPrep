@@ -12,9 +12,13 @@ import {
   AppSettings,
   TopicStatus,
   SyllabusTopic,
-  SubjectCode
+  SubjectCode,
+  RegisteredAccount
 } from './types';
 import { PREDEFINED_SYLLABUS } from './defaultData';
+
+const CURRENT_USER_KEY = 'bankprep_active_user_id';
+const REGISTERED_USERS_KEY = 'bankprep_registered_users';
 
 const STORAGE_KEYS = {
   PROFILE: 'bankprep_profile',
@@ -30,6 +34,107 @@ const STORAGE_KEYS = {
   DAILY_GOALS: 'bankprep_daily_goals',
   SETTINGS: 'bankprep_settings',
 };
+
+// Active user scoping helper
+export function getActiveUserId(): string {
+  try {
+    const id = localStorage.getItem(CURRENT_USER_KEY);
+    if (id && id.trim()) return id.trim();
+  } catch (e) {}
+  return 'usr_default';
+}
+
+export function setActiveUserId(userId: string): void {
+  try {
+    localStorage.setItem(CURRENT_USER_KEY, userId.trim());
+  } catch (e) {}
+}
+
+function getUserScopedKey(key: string): string {
+  // Global settings and registered users index should not be user-scoped
+  if (key === STORAGE_KEYS.SETTINGS || key === REGISTERED_USERS_KEY || key === CURRENT_USER_KEY) {
+    return key;
+  }
+  const userId = getActiveUserId();
+  return `${key}_${userId}`;
+}
+
+// Registered accounts store
+export function getRegisteredAccounts(): RegisteredAccount[] {
+  try {
+    const data = localStorage.getItem(REGISTERED_USERS_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+export function saveRegisteredAccount(acc: RegisteredAccount): void {
+  try {
+    const accounts = getRegisteredAccounts();
+    const filtered = accounts.filter(
+      a => a.id !== acc.id && a.identifier.toLowerCase() !== acc.identifier.toLowerCase()
+    );
+    filtered.push(acc);
+    localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(filtered));
+  } catch (e) {
+    console.error('Failed to save registered account', e);
+  }
+}
+
+export function findRegisteredAccount(identifier: string): RegisteredAccount | undefined {
+  const trimmed = identifier.trim().toLowerCase();
+  const cleanedPhone = trimmed.replace(/[^\d+]/g, '');
+  const accounts = getRegisteredAccounts();
+  return accounts.find(a => 
+    a.identifier.toLowerCase() === trimmed ||
+    (a.email && a.email.toLowerCase() === trimmed) ||
+    (a.phone && a.phone.replace(/[^\d+]/g, '') === cleanedPhone && cleanedPhone.length > 5)
+  );
+}
+
+// Secure client-side password hashing
+export async function hashPassword(password: string): Promise<string> {
+  try {
+    if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password + "_bankprep_salt_v1");
+      const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+  } catch (e) {}
+  return btoa(encodeURIComponent(password + "_bankprep_salt_v1"));
+}
+
+// Helper to safely get from localStorage with multi-user isolation
+function getLocal<T>(key: string, fallback: T): T {
+  try {
+    const scopedKey = getUserScopedKey(key);
+    const data = localStorage.getItem(scopedKey);
+    if (data !== null) return JSON.parse(data);
+
+    // Fallback for default user to legacy key if needed
+    if (scopedKey.endsWith('_usr_default')) {
+      const legacy = localStorage.getItem(key);
+      if (legacy !== null) return JSON.parse(legacy);
+    }
+
+    return fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+// Helper to safely set in localStorage with multi-user isolation
+function setLocal<T>(key: string, value: T): void {
+  try {
+    const scopedKey = getUserScopedKey(key);
+    localStorage.setItem(scopedKey, JSON.stringify(value));
+  } catch (e) {
+    console.error('Failed to save to localStorage', e);
+  }
+}
 
 // Default profile
 export const DEFAULT_PROFILE: UserProfile = {
@@ -57,25 +162,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
     'Sunday': 'Full-Length / Sectional Mock Test & In-Depth Analysis'
   }
 };
-
-// Helper to safely get from localStorage
-function getLocal<T>(key: string, fallback: T): T {
-  try {
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : fallback;
-  } catch (e) {
-    return fallback;
-  }
-}
-
-// Helper to safely set in localStorage
-function setLocal<T>(key: string, value: T): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (e) {
-    console.error('Failed to save to localStorage', e);
-  }
-}
 
 // Custom topics management
 export function getCustomTopics(): SyllabusTopic[] {

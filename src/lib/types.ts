@@ -153,7 +153,8 @@ export interface DailyGoal {
 
 export interface UserProfile {
   id: string;
-  email: string;
+  email?: string;
+  phone?: string;
   fullName: string;
   targetExam: string;
   targetYear: number;
@@ -163,6 +164,16 @@ export interface UserProfile {
   dailyStudyHoursTarget: number;
   dailyQuestionsTarget: number;
   dailyVideosTarget: number;
+}
+
+export interface RegisteredAccount {
+  id: string;
+  identifier: string; // phone or email (normalized)
+  phone?: string;
+  email?: string;
+  passwordHash: string;
+  fullName: string;
+  createdAt: string;
 }
 
 export interface AppSettings {

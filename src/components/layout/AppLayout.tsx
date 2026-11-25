@@ -16,7 +16,8 @@ import {
   Menu,
   X,
   ChevronRight,
-  GraduationCap
+  GraduationCap,
+  LogOut
 } from 'lucide-react';
 import { ThemeToggle } from '../common/ThemeToggle';
 import { useAuth } from '../../context/AuthContext';
@@ -39,7 +40,7 @@ const NAV_ITEMS = [
 
 export const AppLayout: React.FC = () => {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const todayGoal = getTodayGoal();
 
@@ -129,7 +130,7 @@ export const AppLayout: React.FC = () => {
         </div>
 
         {/* Bottom User / Quick Target Card */}
-        <div className="p-3 border-t border-slate-200 dark:border-slate-800">
+        <div className="p-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#1a233a] border border-slate-200/70 dark:border-slate-800/80">
             <div className="flex items-center justify-between text-xs mb-1.5">
               <span className="font-semibold text-slate-700 dark:text-slate-300">Today's Goals</span>
@@ -145,6 +146,25 @@ export const AppLayout: React.FC = () => {
               <span>{user?.targetExam || 'Banking Exam'}</span>
               <span className="font-semibold text-slate-700 dark:text-slate-300">Day 1 / 120</span>
             </div>
+          </div>
+
+          {/* Active Logged-in User Badge */}
+          <div className="px-2 py-1.5 flex items-center justify-between text-xs">
+            <div className="min-w-0 flex-1 mr-2">
+              <p className="font-bold text-slate-800 dark:text-slate-200 truncate text-[11px]">
+                {user?.fullName || 'Logged In'}
+              </p>
+              <p className="text-[10px] text-slate-400 truncate">
+                {user?.phone ? `📱 ${user.phone}` : (user?.email || 'Student')}
+              </p>
+            </div>
+            <button
+              onClick={logout}
+              title="Sign Out"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </aside>
@@ -190,6 +210,16 @@ export const AppLayout: React.FC = () => {
                 {user?.fullName || 'Aspirant'}
               </span>
             </Link>
+
+            {/* Sign Out Button */}
+            <button
+              onClick={logout}
+              title="Sign Out"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
           </div>
         </header>
 
