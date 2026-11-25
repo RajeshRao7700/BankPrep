@@ -363,14 +363,37 @@ export function saveTopicCourseConfig(
   return { config, classes: newClasses };
 }
 
-export function toggleVideoClass(topicId: string, classNumber: number): VideoClassItem | null {
+// Date formatting helper: Returns DD-MM-YYYY (e.g. 25-11-2026)
+export function formatDateDMY(isoStringOrDate?: string): string {
+  if (!isoStringOrDate) return '';
+  try {
+    const d = new Date(isoStringOrDate);
+    if (isNaN(d.getTime())) {
+      const parts = isoStringOrDate.split('-');
+      if (parts.length === 3 && parts[0].length === 4) {
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+      return isoStringOrDate;
+    }
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  } catch (e) {
+    return isoStringOrDate;
+  }
+}
+
+export function toggleVideoClass(topicId: string, classNumber: number, customDate?: string): VideoClassItem | null {
   const allVideoClasses = getAllVideoClasses();
   const classes = allVideoClasses[topicId] || [];
   const target = classes.find(c => c.classNumber === classNumber);
   if (!target) return null;
 
   target.isCompleted = !target.isCompleted;
-  target.completedAt = target.isCompleted ? new Date().toISOString() : undefined;
+  target.completedAt = target.isCompleted 
+    ? (customDate ? new Date(customDate).toISOString() : new Date().toISOString()) 
+    : undefined;
 
   setLocal(STORAGE_KEYS.VIDEO_CLASSES, allVideoClasses);
 
@@ -379,13 +402,37 @@ export function toggleVideoClass(topicId: string, classNumber: number): VideoCla
     incrementTodayGoal('completedVideos', 1);
   }
 
+  // Auto-sync topic completion status & completion date
+  const totalClasses = classes.length;
+  const completedCount = classes.filter(c => c.isCompleted).length;
+  const allTopicsState = getInitialUserTopics();
+  const currentState = allTopicsState[topicId];
+
+  if (totalClasses > 0 && completedCount === totalClasses) {
+    const lastWatchedDate = target.completedAt || new Date().toISOString();
+    saveUserTopicState(topicId, {
+      status: 'Completed',
+      completedDate: formatDateDMY(lastWatchedDate)
+    });
+  } else if (completedCount > 0) {
+    if (currentState?.status === 'Not Started' || currentState?.status === 'Completed') {
+      saveUserTopicState(topicId, { status: 'Learning' });
+    }
+  }
+
   return target;
 }
 
 export function updateVideoClassMeta(
   topicId: string, 
   classNumber: number, 
-  updates: { title?: string; notes?: string; externalVideoUrl?: string }
+  updates: { 
+    title?: string; 
+    notes?: string; 
+    externalVideoUrl?: string;
+    completedAt?: string;
+    isCompleted?: boolean;
+  }
 ): VideoClassItem | null {
   const allVideoClasses = getAllVideoClasses();
   const classes = allVideoClasses[topicId] || [];
@@ -396,7 +443,34 @@ export function updateVideoClassMeta(
   if (updates.notes !== undefined) target.notes = updates.notes;
   if (updates.externalVideoUrl !== undefined) target.externalVideoUrl = updates.externalVideoUrl;
 
+  if (updates.isCompleted !== undefined) {
+    target.isCompleted = updates.isCompleted;
+    if (updates.isCompleted && !target.completedAt) {
+      target.completedAt = updates.completedAt ? new Date(updates.completedAt).toISOString() : new Date().toISOString();
+    } else if (!updates.isCompleted) {
+      target.completedAt = undefined;
+    }
+  }
+
+  if (updates.completedAt !== undefined) {
+    target.completedAt = updates.completedAt ? new Date(updates.completedAt).toISOString() : undefined;
+    if (updates.completedAt) {
+      target.isCompleted = true;
+    }
+  }
+
   setLocal(STORAGE_KEYS.VIDEO_CLASSES, allVideoClasses);
+
+  // Check if topic is fully completed
+  const totalClasses = classes.length;
+  const completedCount = classes.filter(c => c.isCompleted).length;
+  if (totalClasses > 0 && completedCount === totalClasses) {
+    saveUserTopicState(topicId, {
+      status: 'Completed',
+      completedDate: formatDateDMY(target.completedAt || new Date().toISOString())
+    });
+  }
+
   return target;
 }
 

@@ -1,23 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  FileText, 
-  Plus, 
-  Trash2, 
-  TrendingUp, 
-  Award, 
-  Target, 
-  Clock, 
-  CheckCircle2, 
+import {
+  FileText,
+  Plus,
+  Trash2,
+  TrendingUp,
+  Award,
+  Target,
+  Clock,
+  CheckCircle2,
   BarChart3,
   Calendar
 } from 'lucide-react';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   BarChart,
   Bar,
@@ -99,7 +99,7 @@ export const MockTestsPage: React.FC = () => {
   const testCount = mockTests.length;
   const bestScore = testCount > 0 ? Math.max(...mockTests.map(m => m.marksObtained)) : 0;
   const avgScore = testCount > 0 ? (mockTests.reduce((a, b) => a + b.marksObtained, 0) / testCount).toFixed(1) : '0';
-  
+
   // Average Subject Scores
   const avgQuant = testCount > 0 ? (mockTests.reduce((a, b) => a + b.quantScore, 0) / testCount).toFixed(1) : '0';
   const avgReasoning = testCount > 0 ? (mockTests.reduce((a, b) => a + b.reasoningScore, 0) / testCount).toFixed(1) : '0';
@@ -280,11 +280,10 @@ export const MockTestsPage: React.FC = () => {
                         <span className="text-[10px] text-slate-400 ml-1">/ {m.totalMarks}</span>
                       </td>
                       <td className="py-3 px-4">
-                        <span className={`font-bold px-2 py-0.5 rounded-md text-[11px] ${
-                          acc >= 85 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' :
+                        <span className={`font-bold px-2 py-0.5 rounded-md text-[11px] ${acc >= 85 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' :
                           acc >= 70 ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300' :
-                          'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
-                        }`}>
+                            'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
+                          }`}>
                           {acc}%
                         </span>
                       </td>

@@ -28,7 +28,8 @@ import {
   getRevisionRecords, 
   scheduleStandardRevisions, 
   completeRevision,
-  getTopicById
+  getTopicById,
+  formatDateDMY
 } from '../lib/storage';
 import { TopicStatus, UserTopicState } from '../lib/types';
 import confetti from 'canvas-confetti';
@@ -118,6 +119,7 @@ export const TopicDetailPage: React.FC = () => {
   const handleToggleClass = (classNum: number) => {
     toggleVideoClass(topic.id, classNum);
     setVideoClasses(getAllVideoClasses());
+    setTopicState(getInitialUserTopics()[topic.id] || null);
   };
 
   const handleSaveUnderstanding = () => {
@@ -158,7 +160,7 @@ export const TopicDetailPage: React.FC = () => {
   const handleMarkTopicCompleted = () => {
     const updated = saveUserTopicState(topic.id, {
       status: 'Completed',
-      completedDate: new Date().toISOString().split('T')[0]
+      completedDate: formatDateDMY(new Date().toISOString())
     });
     setTopicState(updated);
     setIsConfirmCompleteOpen(false);
@@ -183,7 +185,11 @@ export const TopicDetailPage: React.FC = () => {
             aria-label="Update topic learning status"
             value={topicState.status}
             onChange={(e) => {
-              const updated = saveUserTopicState(topic.id, { status: e.target.value as TopicStatus });
+              const newStatus = e.target.value as TopicStatus;
+              const updated = saveUserTopicState(topic.id, { 
+                status: newStatus,
+                completedDate: newStatus === 'Completed' ? formatDateDMY(new Date().toISOString()) : undefined
+              });
               setTopicState(updated);
             }}
             className="text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#111827] text-slate-800 dark:text-slate-100"
@@ -232,9 +238,9 @@ export const TopicDetailPage: React.FC = () => {
                 Time Spent: <strong className="text-slate-800 dark:text-slate-200">{topicState.timeSpentMinutes || 0} mins</strong>
               </span>
               {topicState.completedDate && (
-                <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Completed: {topicState.completedDate}
+                <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-950/60 border border-emerald-300/80 dark:border-emerald-800 shadow-sm">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  Topic Completed on {formatDateDMY(topicState.completedDate)}
                 </span>
               )}
             </div>
@@ -311,8 +317,8 @@ export const TopicDetailPage: React.FC = () => {
                       </span>
                     </button>
                     {item.completedAt && (
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
-                        ✓ {new Date(item.completedAt).toLocaleDateString()}
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-950/70 px-2 py-0.5 rounded border border-emerald-300/60 dark:border-emerald-800">
+                        ✓ Completed on {formatDateDMY(item.completedAt)}
                       </span>
                     )}
                   </div>

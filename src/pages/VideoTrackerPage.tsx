@@ -20,9 +20,11 @@ import {
   getAllVideoClasses, 
   toggleVideoClass, 
   updateVideoClassMeta,
-  getAllSyllabusTopics 
+  getAllSyllabusTopics,
+  getInitialUserTopics,
+  formatDateDMY
 } from '../lib/storage';
-import { SubjectCode, VideoClassItem } from '../lib/types';
+import { SubjectCode, VideoClassItem, UserTopicState } from '../lib/types';
 
 export const VideoTrackerPage: React.FC = () => {
   const [selectedSubject, setSelectedSubject] = useState<SubjectCode | 'all'>('all');
@@ -31,17 +33,27 @@ export const VideoTrackerPage: React.FC = () => {
   const [sortBy, setSortBy] = useState<'default' | 'progress-asc' | 'progress-desc' | 'name'>('default');
   const [expandedTopics, setExpandedTopics] = useState<Record<string, boolean>>({});
   const [videoClasses, setVideoClasses] = useState<Record<string, VideoClassItem[]>>({});
+  const [topicsState, setTopicsState] = useState<Record<string, UserTopicState>>({});
   const [courses, setCourses] = useState(getAllCourses());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Edit class modal state
-  const [editingClass, setEditingClass] = useState<{ topicId: string; classNumber: number; title: string; notes: string; url: string } | null>(null);
+  const [editingClass, setEditingClass] = useState<{ 
+    topicId: string; 
+    classNumber: number; 
+    title: string; 
+    notes: string; 
+    url: string;
+    completedAt?: string;
+    isCompleted?: boolean;
+  } | null>(null);
 
   const allTopics = getAllSyllabusTopics();
 
   useEffect(() => {
     setVideoClasses(getAllVideoClasses());
     setCourses(getAllCourses());
+    setTopicsState(getInitialUserTopics());
 
     // Initially expand first 2 topics
     const initialExpanded: Record<string, boolean> = {};
@@ -52,10 +64,12 @@ export const VideoTrackerPage: React.FC = () => {
   const handleToggle = (topicId: string, classNum: number) => {
     const res = toggleVideoClass(topicId, classNum);
     setVideoClasses(getAllVideoClasses());
+    setTopicsState(getInitialUserTopics());
 
     if (res) {
+      const dateStr = formatDateDMY(res.completedAt);
       const msg = res.isCompleted 
-        ? `Marked Class ${classNum} as completed! Progress updated.` 
+        ? `Marked Class ${classNum} as completed on ${dateStr}!` 
         : `Marked Class ${classNum} as pending.`;
       setToastMessage(msg);
       setTimeout(() => setToastMessage(null), 3000);
@@ -67,9 +81,12 @@ export const VideoTrackerPage: React.FC = () => {
     updateVideoClassMeta(editingClass.topicId, editingClass.classNumber, {
       title: editingClass.title,
       notes: editingClass.notes,
-      externalVideoUrl: editingClass.url
+      externalVideoUrl: editingClass.url,
+      completedAt: editingClass.completedAt,
+      isCompleted: editingClass.isCompleted
     });
     setVideoClasses(getAllVideoClasses());
+    setTopicsState(getInitialUserTopics());
     setEditingClass(null);
     setToastMessage(`Saved details for Class ${editingClass.classNumber}`);
     setTimeout(() => setToastMessage(null), 3000);
@@ -314,7 +331,17 @@ export const VideoTrackerPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 shrink-0">
+                <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+                  {/* Topic Fully Completed Badge with Date */}
+                  {percent === 100 && (
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-[11px] sm:text-xs font-bold shadow-sm">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span>
+                        Topic Completed on {formatDateDMY(topicsState[topic.id]?.completedDate || visibleClasses[visibleClasses.length - 1]?.completedAt)}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Progress Pill */}
                   <div className="text-right">
                     <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
@@ -395,19 +422,26 @@ export const VideoTrackerPage: React.FC = () => {
                                   classNumber: item.classNumber,
                                   title: item.title,
                                   notes: item.notes || '',
-                                  url: item.externalVideoUrl || ''
+                                  url: item.externalVideoUrl || '',
+                                  completedAt: item.completedAt,
+                                  isCompleted: item.isCompleted
                                 })}
                                 className="text-slate-400 hover:text-brand-600 p-0.5"
-                                title="Edit class notes or link"
+                                title="Edit class date, notes or link"
                               >
                                 <FileEdit className="w-3.5 h-3.5" />
                               </button>
                             </div>
 
-                            {item.completedAt && (
-                              <p className="text-[10px] text-emerald-700 dark:text-emerald-400 mt-0.5">
-                                Completed on {new Date(item.completedAt).toLocaleDateString()}
-                              </p>
+                            {item.isCompleted ? (
+                              <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/70 px-2 py-0.5 rounded-md border border-emerald-300/80 dark:border-emerald-800">
+                                  <Calendar className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                  Completed on {formatDateDMY(item.completedAt)}
+                                </span>
+                              </div>
+                            ) : (
+                              <p className="text-[10px] text-slate-400 mt-1">Pending</p>
                             )}
 
                             {item.notes && (
@@ -466,6 +500,35 @@ export const VideoTrackerPage: React.FC = () => {
                 placeholder={`Class ${editingClass.classNumber}`}
                 className="w-full px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                  Completed Date (DD-MM-YYYY)
+                </label>
+                {editingClass.completedAt && (
+                  <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                    {formatDateDMY(editingClass.completedAt)}
+                  </span>
+                )}
+              </div>
+              <input
+                type="date"
+                value={editingClass.completedAt ? editingClass.completedAt.split('T')[0] : ''}
+                onChange={e => {
+                  const val = e.target.value;
+                  setEditingClass({ 
+                    ...editingClass, 
+                    completedAt: val ? new Date(val).toISOString() : undefined,
+                    isCompleted: Boolean(val)
+                  });
+                }}
+                className="w-full px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+              <span className="text-[10px] text-slate-400 mt-0.5 block">
+                Set or adjust the exact date you watched this lecture.
+              </span>
             </div>
 
             <div>

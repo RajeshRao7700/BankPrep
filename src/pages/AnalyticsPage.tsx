@@ -25,13 +25,13 @@ import {
   Cell
 } from 'recharts';
 import { SUBJECTS } from '../lib/defaultData';
-import { 
-  getInitialUserTopics, 
-  getAllVideoClasses, 
-  getPracticeRecords, 
-  getRevisionRecords, 
+import {
+  getInitialUserTopics,
+  getAllVideoClasses,
+  getPracticeRecords,
+  getRevisionRecords,
   getMockTests,
-  getAllSyllabusTopics 
+  getAllSyllabusTopics
 } from '../lib/storage';
 
 const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];

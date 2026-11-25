@@ -1,43 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Video, 
-  Target, 
-  Repeat, 
-  Clock, 
-  Flame, 
-  CheckCircle2, 
-  Circle, 
-  Sparkles, 
+import {
+  LayoutDashboard,
+  BookOpen,
+  Video,
+  Target,
+  Repeat,
+  Clock,
+  Flame,
+  CheckCircle2,
+  Circle,
+  Sparkles,
   ArrowUpRight,
   TrendingUp,
   AlertCircle,
   PlayCircle,
   Award
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  CartesianGrid 
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid
 } from 'recharts';
 import { SUBJECTS } from '../lib/defaultData';
-import { 
-  getInitialUserTopics, 
-  getAllCourses, 
-  getAllVideoClasses, 
-  getPracticeRecords, 
-  getRevisionRecords, 
-  getStudyTasks, 
+import {
+  getInitialUserTopics,
+  getAllCourses,
+  getAllVideoClasses,
+  getPracticeRecords,
+  getRevisionRecords,
+  getStudyTasks,
   toggleStudyTask,
   getUserProfile,
   getTodayGoal,
-  getAllSyllabusTopics
+  getAllSyllabusTopics,
+  formatDateDMY
 } from '../lib/storage';
 import { SubjectCode } from '../lib/types';
 
@@ -93,11 +94,14 @@ export const DashboardPage: React.FC = () => {
   const todayStr = new Date().toISOString().split('T')[0];
   const todayTasks = studyTasks.filter(t => t.taskDate === todayStr);
 
+  // Completed Topics List
+  const completedTopicsList = allTopics.filter(t => topicsState[t.id]?.status === 'Completed');
+
   // Subject Wise Breakdown
   const subjectProgress = SUBJECTS.map(sub => {
     const subTopics = allTopics.filter(t => t.subjectCode === sub.code);
     const completedCount = subTopics.filter(t => topicsState[t.id]?.status === 'Completed').length;
-    
+
     let subTotalVideos = 0;
     let subCompletedVideos = 0;
     subTopics.forEach(t => {
@@ -227,7 +231,7 @@ export const DashboardPage: React.FC = () => {
         <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-800/40 shadow-sm">
           <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold uppercase">Completed Topics</p>
           <p className="text-2xl font-black text-emerald-700 dark:text-emerald-300 mt-1">{completedTopics}</p>
-          <p className="text-[10px] text-emerald-600 mt-0.5">{Math.round((completedTopics/totalTopics)*100)}% coverage</p>
+          <p className="text-[10px] text-emerald-600 mt-0.5">{Math.round((completedTopics / totalTopics) * 100)}% coverage</p>
         </div>
 
         <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200/70 dark:border-blue-800/40 shadow-sm">
@@ -308,9 +312,9 @@ export const DashboardPage: React.FC = () => {
                 </div>
 
                 <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-4">
-                  <div 
-                    className="h-full rounded-full transition-all duration-500" 
-                    style={{ width: `${sub.percentage}%`, backgroundColor: sub.color }} 
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${sub.percentage}%`, backgroundColor: sub.color }}
                   />
                 </div>
 
@@ -392,9 +396,8 @@ export const DashboardPage: React.FC = () => {
                           <Circle className="w-4 h-4 text-slate-300 dark:text-slate-600" />
                         )}
                       </button>
-                      <span className={`text-xs ${
-                        task.isCompleted ? 'line-through text-slate-400' : 'text-slate-900 dark:text-white font-medium'
-                      }`}>
+                      <span className={`text-xs ${task.isCompleted ? 'line-through text-slate-400' : 'text-slate-900 dark:text-white font-medium'
+                        }`}>
                         {task.title}
                       </span>
                     </div>
@@ -470,6 +473,54 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Completed Topics & Milestones Section */}
+      {completedTopicsList.length > 0 && (
+        <div className="p-5 rounded-2xl bg-white dark:bg-[#111827] border border-slate-200/80 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-3">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              Completed Topics & Milestones ({completedTopicsList.length})
+            </h2>
+            <Link to="/syllabus" className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline">
+              View All Syllabus →
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {completedTopicsList.slice(0, 6).map(topic => {
+              const state = topicsState[topic.id];
+              const sub = SUBJECTS.find(s => s.code === topic.subjectCode);
+              return (
+                <div
+                  key={topic.id}
+                  className="p-3.5 rounded-xl border border-emerald-200/70 dark:border-emerald-900/40 bg-emerald-50/40 dark:bg-emerald-950/20 flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ${sub?.bgLight || 'bg-slate-100'} ${sub?.bgDark || 'text-slate-800'}`}>
+                      {sub?.name || topic.subjectCode}
+                    </span>
+                    <h4 className="font-bold text-xs text-slate-900 dark:text-white mt-1 truncate">
+                      {topic.name}
+                    </h4>
+                    <p className="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold mt-0.5 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      Completed on {formatDateDMY(state?.completedDate) || formatDateDMY(new Date().toISOString())}
+                    </p>
+                  </div>
+                  <Link
+                    to={`/syllabus/${topic.id}`}
+                    className="p-1.5 rounded-lg text-emerald-700 hover:bg-emerald-100 dark:text-emerald-300 dark:hover:bg-emerald-900/40 shrink-0"
+                    title="View topic deep dive"
+                  >
+                    <ArrowUpRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

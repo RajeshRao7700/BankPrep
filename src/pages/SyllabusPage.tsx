@@ -20,7 +20,8 @@ import {
   getAllVideoClasses,
   getPracticeRecords,
   getRevisionRecords,
-  getAllSyllabusTopics
+  getAllSyllabusTopics,
+  formatDateDMY
 } from '../lib/storage';
 import { SubjectCode, TopicStatus, UserTopicState } from '../lib/types';
 
@@ -45,7 +46,7 @@ export const SyllabusPage: React.FC = () => {
   const handleStatusChange = (topicId: string, newStatus: TopicStatus) => {
     const updated = saveUserTopicState(topicId, {
       status: newStatus,
-      completedDate: newStatus === 'Completed' ? new Date().toISOString().split('T')[0] : undefined
+      completedDate: newStatus === 'Completed' ? formatDateDMY(new Date().toISOString()) : undefined
     });
     setTopicsState(prev => ({ ...prev, [topicId]: updated }));
   };
@@ -260,6 +261,14 @@ export const SyllabusPage: React.FC = () => {
                     {topic.name}
                   </h3>
                 </Link>
+
+                {/* Topic Completed on Date Badge */}
+                {state.status === 'Completed' && (
+                  <div className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-200/80 dark:border-emerald-800/60">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span>Completed on {formatDateDMY(state.completedDate) || formatDateDMY(new Date().toISOString())}</span>
+                  </div>
+                )}
 
                 {/* Progress Mini Bars */}
                 <div className="mt-3.5 space-y-2.5">
